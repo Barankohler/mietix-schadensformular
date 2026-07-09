@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏎️</text></svg>">
+<title>Mietix Schadensformular</title>
+<style>
+  :root {
+    --ink: #16181C;
+    --ink-soft: #4A4F57;
+    --muted: #858B94;
+    --line: #E4E6EA;
+    --line-strong: #CDD0D6;
+    --paper: #FFFFFF;
+    --ground: #F4F5F7;
+    --field: #FBFBFC;
+    --accent: #B11226;
+    --accent-dark: #8C0E1E;
+    --good: #1B7A44;
+    --shadow: 0 1px 2px rgba(16,18,22,.04), 0 8px 28px rgba(16,18,22,.06);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .topbar {
+    background: var(--ink);
+    color: #fff;
+    padding: 18px 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 18px;
+  }
+  .brand .dot { color: var(--accent); }
+  .brand-sub {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #A9AEB6;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 22px 20px 140px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .wrap { grid-template-columns: 1fr; padding-bottom: 160px; }
+  }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .panel-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-head h2 {
+    margin: 0;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  form { padding: 8px 20px 20px; }
+  .field { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .field:last-child { border-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 7px;
+  }
+  label .opt { color: var(--muted); font-weight: 400; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    font: inherit;
+    color: var(--ink);
+    background: var(--field);
+    border: 1px solid var(--line-strong);
+    border-radius: 9px;
+    padding: 11px 12px;
+    outline: none;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  textarea { resize: vertical; min-height: 62px; }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(177,18,38,.12);
+    background: #fff;
+  }
+
+  .money-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+  @media (max-width: 460px) { .money-grid { grid-template-columns: 1fr; } }
+  .money { position: relative; }
+  .money .cur {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-weight: 600; pointer-events: none;
+  }
+  .money input { padding-left: 26px; font-variant-numeric: tabular-nums; }
+
+  .rest {
+    margin-top: 16px;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rest .lbl { font-size: 13px; color: #B7BCC4; text-transform: uppercase; letter-spacing: 0.08em; }
+  .rest .val { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .rest.credit { background: #17402A; }
+  .rest.credit .val { color: #7FE0A6; }
+  .note { font-size: 12.5px; color: var(--good); margin-top: 8px; display: none; }
+  .note.show { display: block; }
+
+  /* Letter preview */
+  .letter-scroll { padding: 22px; max-height: 72vh; overflow-y: auto; }
+  .letter {
+    font-family: Georgia, "Times New Roman", "Iowan Old Style", serif;
+    color: #23262B;
+    font-size: 15px;
+    line-height: 1.62;
+  }
+  .letter .head {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .letter .head .co { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; color: var(--ink); }
+  .letter .head .co .dot { color: var(--accent); }
+  .letter .head .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .letter p { margin: 0 0 13px; }
+  .letter .subject { font-weight: 700; }
+  .letter .amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .letter .sign { margin-top: 22px; }
+
+  /* Action bar */
+  .actionbar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    z-index: 20;
+  }
+  button.act {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 12px 18px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform .08s, background .12s, border-color .12s;
+  }
+  button.act:active { transform: translateY(1px); }
+  .btn-wa { background: #25D366; color: #06331b; }
+  .btn-wa:hover { background: #20c15d; }
+  .btn-copy { background: var(--ink); color: #fff; }
+  .btn-copy:hover { background: #000; }
+  .btn-ghost { background: #fff; color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:hover { border-color: var(--muted); }
+  .btn-copy.done { background: var(--good); }
+  svg.ic { width: 18px; height: 18px; }
+
+  @media print {
+    .topbar, .actionbar, .panel:first-of-type, .panel-head { display: none !important; }
+    body, .wrap, .panel { background: #fff; box-shadow: none; border: 0; margin: 0; padding: 0; display: block; }
+    .letter-scroll { max-height: none; overflow: visible; padding: 0; }
+  }
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Mietix<span class="dot">.</span></span>
+  <span class="brand-sub">Sportwagenvermietung &middot; Schadensmeldung</span>
+</div>
+
+<div class="wrap">
+  <!-- INPUT -->
+  <section class="panel">
+    <div class="panel-head"><h2>Eingabe</h2></div>
+    <form id="f" autocomplete="off">
+      <div class="field">
+        <label>Anrede / Name <span class="opt">(optional)</span></label>
+        <input type="text" id="name" placeholder="z. B. Herr Mustermann">
+        <div class="hint">Leer lassen für neutrale Anrede &bdquo;Guten Abend,&ldquo;</div>
+      </div>
+
+      <div class="field">
+        <label>Fahrzeug</label>
+        <input type="text" id="fahrzeug" placeholder="z. B. Lamborghini Huracan">
+      </div>
+
+      <div class="field">
+        <label>Kennzeichen <span class="opt">(optional)</span></label>
+        <input type="text" id="kennzeichen" placeholder="z. B. KL-MX 911">
+      </div>
+
+      <div class="field">
+        <label>Schaden / weitere Details <span class="opt">(optional)</span></label>
+        <textarea id="schaden" placeholder="z. B. Kratzer und Lackschaden an der hinteren Stossstange rechts"></textarea>
+        <div class="hint">Wird als eigener Satz in das Schreiben eingefügt.</div>
+      </div>
+
+      <div class="field">
+        <label>Beträge</label>
+        <div class="money-grid">
+          <div>
+            <div class="money">
+              <span class="cur">&euro;</span>
+              <input type="text" id="reparatur" inputmode="decimal" placeholder="Reparaturkosten">
+            </div>
+            <div class="hint">Reparaturkosten lt. Kostenvoranschlag</div>
+          </div>
+          <div>
+            <div class="money">
+              <span class="cur">&euro;</span>
+              <input type="text" id="kv" inputmode="decimal" placeholder="Kostenvoranschlag">
+            </div>
+            <div class="hint">Kosten des Kostenvoranschlags (optional)</div>
+          </div>
+          <div>
+            <div class="money">
+              <span class="cur">&euro;</span>
+              <input type="text" id="kaution" inputmode="decimal" placeholder="Kaution">
+            </div>
+            <div class="hint">Hinterlegte Kaution</div>
+          </div>
+        </div>
+        <div class="rest" id="restBox">
+          <span class="lbl">Offener Restbetrag</span>
+          <span class="val" id="restVal">0,00 &euro;</span>
+        </div>
+        <div class="note" id="note">Die Kaution deckt den Schaden vollständig. Das Schreiben wechselt automatisch zur Rückzahlungs-Variante mit IBAN-Bitte.</div>
+      </div>
+
+      <div class="field">
+        <label>WhatsApp-Nummer des Kunden <span class="opt">(optional)</span></label>
+        <input type="text" id="tel" inputmode="tel" placeholder="z. B. 0170 1234567">
+        <div class="hint">Für den direkten Versand. Leer lassen, um den Chat selbst auszuwählen.</div>
+      </div>
+    </form>
+  </section>
+
+  <!-- PREVIEW -->
+  <section class="panel">
+    <div class="panel-head"><h2>Vorschau</h2></div>
+    <div class="letter-scroll">
+      <div class="letter" id="letter"></div>
+    </div>
+  </section>
+</div>
+
+<div class="actionbar">
+  <button class="act btn-wa" id="waBtn">
+    <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm0 18.14h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.24 8.24 0 0 1-1.26-4.37c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.28.86 5.84 2.42a8.2 8.2 0 0 1 2.42 5.83c0 4.55-3.7 8.24-8.25 8.24Zm4.52-6.17c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.79.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43-.14 0-.31-.01-.48-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.28Z"/></svg>
+    In WhatsApp senden
+  </button>
+  <button class="act btn-copy" id="copyBtn">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+    Text kopieren
+  </button>
+  <button class="act btn-ghost" id="printBtn">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+    Drucken / PDF
+  </button>
+</div>
+
+<script>
+  const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
+  const $ = id => document.getElementById(id);
+  const ids = ['name','fahrzeug','kennzeichen','schaden','reparatur','kv','kaution','tel'];
+
+  function parseNum(v) {
+    if (!v) return 0;
+    v = String(v).trim().replace(/[^\d.,-]/g, '');
+    // German style: comma decimal, dot thousands
+    if (v.indexOf(',') > -1) v = v.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function fmt(n) { return eur.format(n).replace(/ /g, ' '); }
+
+  function greeting() {
+    const nm = $('name').value.trim();
+    return nm ? 'Guten Abend ' + nm + ',' : 'Guten Abend,';
+  }
+
+  function buildData() {
+    const rep = parseNum($('reparatur').value);
+    const kv = parseNum($('kv').value);
+    const kau = parseNum($('kaution').value);
+    const forderung = rep + kv;          // Gesamtforderung = Reparatur + Kostenvoranschlag
+    const diff = forderung - kau;
+    const rest = Math.max(0, diff);
+    return { rep, kv, kau, forderung, diff, rest };
+  }
+
+  // Live restbetrag box: schaltet automatisch zwischen Nachzahlung und Rückzahlung um
+  function updateRest() {
+    const { diff, rest } = buildData();
+    const credit = diff < 0;
+    $('restVal').textContent = fmt(credit ? Math.abs(diff) : rest);
+    document.querySelector('#restBox .lbl').textContent = credit ? 'Rückzahlung an den Kunden' : 'Offener Restbetrag';
+    $('restBox').classList.toggle('credit', credit);
+    $('note').classList.toggle('show', credit);
+  }
+
+  function fahrzeugLabel() {
+    const f = $('fahrzeug').value.trim() || 'Fahrzeugs';
+    const k = $('kennzeichen').value.trim();
+    let s = $('fahrzeug').value.trim() ? f : 'Fahrzeugs';
+    if ($('fahrzeug').value.trim() && k) s = f + ' (' + k + ')';
+    return s;
+  }
+
+  // Build the letter as plain-text lines (single source of truth).
+  // Variant is chosen automatically: rep > kau => Nachzahlung, rep < kau => Rückzahlung, rep == kau => exakt gedeckt.
+  function letterLines() {
+    const { rep, kv, kau, forderung, diff, rest } = buildData();
+    const fz = fahrzeugLabel();
+    const schaden = $('schaden').value.trim();
+    const rueck = Math.abs(Math.min(0, diff));
+    const mitKV = kv > 0;
+    const verzichtKurz = mitKV
+      ? 'Auch bei dieser Abrechnung haben wir ausschließlich die tatsächlich entstandenen Reparaturkosten sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.'
+      : 'Auch bei dieser Abrechnung haben wir ausschließlich die tatsächlich entstandenen Reparaturkosten angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.';
+
+    const L = [];
+    L.push(greeting());
+    L.push('');
+    L.push('vielen Dank für die Anmietung des ' + fz + ' und für die pünktliche Rückgabe.');
+    L.push('');
+    L.push('Bei der Rückgabe des Fahrzeugs wurde ein Schaden festgestellt. Wir wissen, dass eine solche Nachricht nie angenehm ist, deshalb möchten wir die Abwicklung für Sie so transparent und unkompliziert wie möglich gestalten.');
+    if (schaden) { L.push(''); L.push('Festgestellter Schaden: ' + schaden + '.'); }
+    L.push('');
+    if (mitKV) {
+      L.push('Die Reparaturkosten belaufen sich gemäß beigefügtem Kostenvoranschlag auf insgesamt ' + fmt(rep) + '. Hinzu kommen die Kosten für die Erstellung des Kostenvoranschlags in Höhe von ' + fmt(kv) + ', insgesamt somit ' + fmt(forderung) + '. Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.');
+    } else {
+      L.push('Die Reparaturkosten belaufen sich gemäß beigefügtem Kostenvoranschlag auf insgesamt ' + fmt(rep) + '. Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.');
+    }
+    L.push('');
+
+    if (diff > 0) {
+      // ── Variante A: Kunde muss nachzahlen ──
+      L.push('Nach Verrechnung der Kaution verbleibt somit ein offener Restbetrag in Höhe von ' + fmt(rest) + '.');
+      L.push('');
+      L.push('Wir bitten Sie, diesen Betrag innerhalb von 7 Tagen auf das Ihnen bekannte Geschäftskonto zu überweisen. Sollten Sie Fragen zum Kostenvoranschlag haben oder eine andere Zahlungsweise benötigen, melden Sie sich gerne direkt bei uns, wir finden gemeinsam eine Lösung.');
+      L.push('');
+      if (mitKV) {
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
+        L.push('');
+        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf die tatsächlich entstandenen Reparaturkosten sowie die Kosten des Kostenvoranschlags. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
+      } else {
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen die Kosten für die Erstellung des Kostenvoranschlags, der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
+        L.push('');
+        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf die tatsächlich entstandenen Reparaturkosten. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
+      }
+      L.push('');
+      L.push('Vielen Dank für Ihr Verständnis. Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.');
+    } else if (diff < 0) {
+      // ── Variante B: Kunde bekommt Geld zurück ──
+      L.push('Die gute Nachricht: Ihre Kaution deckt die Reparaturkosten vollständig ab. Es entstehen für Sie keine weiteren Kosten, und Sie erhalten den nicht benötigten Teil der Kaution selbstverständlich zurück.');
+      L.push('');
+      L.push('Nach Verrechnung ergibt sich zu Ihren Gunsten ein Rückzahlungsbetrag in Höhe von ' + fmt(rueck) + '.');
+      L.push('');
+      L.push('Bitte teilen Sie uns hierfür kurz Ihre IBAN sowie den Namen des Kontoinhabers mit. Wir überweisen Ihnen den Betrag umgehend nach Erhalt Ihrer Bankverbindung, in der Regel innerhalb weniger Werktage.');
+      L.push('');
+      L.push(verzichtKurz);
+      L.push('');
+      L.push('Vielen Dank für Ihr Verständnis und die angenehme Zusammenarbeit. Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.');
+    } else {
+      // ── Variante C: Kaution deckt den Schaden exakt ──
+      L.push('Die Kaution deckt die Reparaturkosten damit vollständig ab. Es entstehen für Sie keine weiteren Kosten, und es besteht kein offener Betrag mehr. Die Angelegenheit ist damit für Sie vollständig erledigt.');
+      L.push('');
+      L.push(verzichtKurz);
+      L.push('');
+      L.push('Vielen Dank für Ihr Verständnis. Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.');
+    }
+
+    L.push('');
+    L.push('Mit freundlichen Grüßen');
+    L.push('');
+    L.push('Mietix Sportwagenvermietung');
+    return L;
+  }
+
+  // Render preview (HTML) from the same lines
+  function render() {
+    updateRest();
+    const lines = letterLines();
+    const letter = $('letter');
+    letter.innerHTML = '';
+
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.innerHTML = '<span class="co">Mietix<span class="dot">.</span></span><span class="tag">Sportwagenvermietung</span>';
+    letter.appendChild(head);
+
+    // group lines into paragraphs (blank line = separator)
+    let buf = [];
+    const flush = () => {
+      if (!buf.length) return;
+      const p = document.createElement('p');
+      p.textContent = buf.join(' ');
+      if (buf[0].startsWith('Mit freundlichen')) p.className = 'sign';
+      letter.appendChild(p);
+      buf = [];
+    };
+    lines.forEach(l => { if (l === '') flush(); else buf.push(l); });
+    flush();
+  }
+
+  // Plain text for WhatsApp / clipboard (uses real umlauts via a map)
+  function plainText() {
+    return letterLines().join('\n');
+  }
+
+  function digitsOnly(t) {
+    let d = String(t).replace(/[^\d+]/g, '');
+    if (d.startsWith('00')) d = d.slice(2);
+    else if (d.startsWith('+')) d = d.slice(1);
+    else if (d.startsWith('0')) d = '49' + d.slice(1); // assume Germany
+    return d;
+  }
+
+  $('waBtn').addEventListener('click', () => {
+    const txt = encodeURIComponent(plainText());
+    const tel = $('tel').value.trim();
+    const url = tel ? 'https://wa.me/' + digitsOnly(tel) + '?text=' + txt
+                    : 'https://wa.me/?text=' + txt;
+    window.open(url, '_blank');
+  });
+
+  $('copyBtn').addEventListener('click', async () => {
+    const btn = $('copyBtn');
+    try {
+      await navigator.clipboard.writeText(plainText());
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = plainText(); document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); ta.remove();
+    }
+    const old = btn.innerHTML;
+    btn.classList.add('done');
+    btn.innerHTML = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg> Kopiert';
+    setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = old; }, 1600);
+  });
+
+  $('printBtn').addEventListener('click', () => window.print());
+
+  ids.forEach(id => $(id).addEventListener('input', render));
+  render();
+</script>
+</body>
+</html>
