@@ -205,15 +205,40 @@
   .btn-copy.done { background: var(--good); }
   svg.ic { width: 18px; height: 18px; }
 
+  .seg { display: flex; gap: 8px; }
+  .seg label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--field);
+    color: var(--ink-soft);
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color .12s, background .12s, color .12s;
+  }
+  .seg label:has(input:checked) {
+    border-color: var(--accent);
+    background: #FDF2F3;
+    color: var(--accent-dark);
+    font-weight: 600;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+
   @media print {
     .topbar, .actionbar, .panel:first-of-type, .panel-head { display: none !important; }
     body, .wrap, .panel { background: #fff; box-shadow: none; border: 0; margin: 0; padding: 0; display: block; }
     .letter-scroll { max-height: none; overflow: visible; padding: 0; }
   }
 </style>
-
 </head>
 <body>
+
 <div class="topbar">
   <span class="brand">Mietix<span class="dot">.</span></span>
   <span class="brand-sub">Sportwagenvermietung &middot; Schadensmeldung</span>
@@ -247,6 +272,15 @@
       </div>
 
       <div class="field">
+        <label>Abrechnungsbasis</label>
+        <div class="seg" id="basisSeg">
+          <label><input type="radio" name="basis" value="kv" checked>Kostenvoranschlag</label>
+          <label><input type="radio" name="basis" value="rechnung">Rechnung (repariert)</label>
+        </div>
+        <div class="hint">Rechnung wählen, sobald die Reparatur durchgeführt und berechnet wurde. Der Brief spricht dann von tatsächlich angefallenen Kosten. Beim Kostenvoranschlag stützt sich der Brief auf § 249 Abs. 2 BGB (Abrechnung auf KV-Basis ist zulässig).</div>
+      </div>
+
+      <div class="field">
         <label>Beträge</label>
         <div class="money-grid">
           <div>
@@ -254,7 +288,7 @@
               <span class="cur">&euro;</span>
               <input type="text" id="reparatur" inputmode="decimal" placeholder="Reparaturkosten">
             </div>
-            <div class="hint">Reparaturkosten lt. Kostenvoranschlag</div>
+            <div class="hint">Reparaturkosten lt. Kostenvoranschlag bzw. Rechnung</div>
           </div>
           <div>
             <div class="money">
@@ -351,6 +385,11 @@
     $('note').classList.toggle('show', credit);
   }
 
+  function basis() {
+    const el = document.querySelector('#basisSeg input:checked');
+    return el ? el.value : 'kv';
+  }
+
   function fahrzeugLabel() {
     const f = $('fahrzeug').value.trim() || 'Fahrzeugs';
     const k = $('kennzeichen').value.trim();
@@ -367,9 +406,14 @@
     const schaden = $('schaden').value.trim();
     const rueck = Math.abs(Math.min(0, diff));
     const mitKV = kv > 0;
+    const nachRechnung = basis() === 'rechnung';
+    const repLabel = nachRechnung
+      ? 'die tatsächlich entstandenen Reparaturkosten'
+      : 'die im Kostenvoranschlag ausgewiesenen Reparaturkosten';
+    const belegWort = nachRechnung ? 'zur Abrechnung' : 'zum Kostenvoranschlag';
     const verzichtKurz = mitKV
-      ? 'Auch bei dieser Abrechnung haben wir ausschließlich die tatsächlich entstandenen Reparaturkosten sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.'
-      : 'Auch bei dieser Abrechnung haben wir ausschließlich die tatsächlich entstandenen Reparaturkosten angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.';
+      ? 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.'
+      : 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.';
 
     const L = [];
     L.push(greeting());
@@ -379,10 +423,18 @@
     L.push('Bei der Rückgabe des Fahrzeugs wurde ein Schaden festgestellt. Wir wissen, dass eine solche Nachricht nie angenehm ist, deshalb möchten wir die Abwicklung für Sie so transparent und unkompliziert wie möglich gestalten.');
     if (schaden) { L.push(''); L.push('Festgestellter Schaden: ' + schaden + '.'); }
     L.push('');
+    const kautionSatz = 'Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.';
+    const kern = nachRechnung
+      ? 'Die Reparatur des Fahrzeugs wurde inzwischen fachgerecht durchgeführt. Die tatsächlich angefallenen Reparaturkosten belaufen sich gemäß beigefügter Rechnung auf insgesamt ' + fmt(rep) + '.'
+      : 'Die Schadenshöhe wurde durch den beigefügten Kostenvoranschlag einer Fachwerkstatt verbindlich beziffert. Die Reparaturkosten belaufen sich danach auf insgesamt ' + fmt(rep) + '.';
     if (mitKV) {
-      L.push('Die Reparaturkosten belaufen sich gemäß beigefügtem Kostenvoranschlag auf insgesamt ' + fmt(rep) + '. Hinzu kommen die Kosten für die Erstellung des Kostenvoranschlags in Höhe von ' + fmt(kv) + ', insgesamt somit ' + fmt(forderung) + '. Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.');
+      L.push(kern + ' Hinzu kommen die Kosten für die Erstellung des Kostenvoranschlags in Höhe von ' + fmt(kv) + ', insgesamt somit ' + fmt(forderung) + '. ' + kautionSatz);
     } else {
-      L.push('Die Reparaturkosten belaufen sich gemäß beigefügtem Kostenvoranschlag auf insgesamt ' + fmt(rep) + '. Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.');
+      L.push(kern + ' ' + kautionSatz);
+    }
+    if (!nachRechnung) {
+      L.push('');
+      L.push('Zur Einordnung: Als Geschädigte sind wir nach § 249 Abs. 2 BGB berechtigt, den Schaden auf Grundlage eines Kostenvoranschlags abzurechnen. Die Forderung besteht damit unabhängig davon, ob und wann wir die Reparatur durchführen lassen.');
     }
     L.push('');
 
@@ -390,16 +442,16 @@
       // ── Variante A: Kunde muss nachzahlen ──
       L.push('Nach Verrechnung der Kaution verbleibt somit ein offener Restbetrag in Höhe von ' + fmt(rest) + '.');
       L.push('');
-      L.push('Wir bitten Sie, diesen Betrag innerhalb von 7 Tagen auf das Ihnen bekannte Geschäftskonto zu überweisen. Sollten Sie Fragen zum Kostenvoranschlag haben oder eine andere Zahlungsweise benötigen, melden Sie sich gerne direkt bei uns, wir finden gemeinsam eine Lösung.');
+      L.push('Wir bitten Sie, diesen Betrag innerhalb von 7 Tagen auf das Ihnen bekannte Geschäftskonto zu überweisen. Sollten Sie Fragen ' + belegWort + ' haben oder eine andere Zahlungsweise benötigen, melden Sie sich gerne direkt bei uns, wir finden gemeinsam eine Lösung.');
       L.push('');
       if (mitKV) {
         L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
         L.push('');
-        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf die tatsächlich entstandenen Reparaturkosten sowie die Kosten des Kostenvoranschlags. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
+        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + ' sowie die Kosten des Kostenvoranschlags. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       } else {
         L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen die Kosten für die Erstellung des Kostenvoranschlags, der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
         L.push('');
-        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf die tatsächlich entstandenen Reparaturkosten. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
+        L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + '. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       }
       L.push('');
       L.push('Vielen Dank für Ihr Verständnis. Für Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung.');
@@ -495,6 +547,7 @@
   $('printBtn').addEventListener('click', () => window.print());
 
   ids.forEach(id => $(id).addEventListener('input', render));
+  document.querySelectorAll('#basisSeg input').forEach(el => el.addEventListener('change', render));
   render();
 </script>
 </body>
