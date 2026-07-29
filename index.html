@@ -252,7 +252,7 @@
       <div class="field">
         <label>Anrede / Name <span class="opt">(optional)</span></label>
         <input type="text" id="name" placeholder="z. B. Herr Mustermann">
-        <div class="hint">Leer lassen für neutrale Anrede &bdquo;Guten Abend,&ldquo;</div>
+        <div class="hint">Leer lassen für neutrale Anrede &bdquo;Hallo,&ldquo;</div>
       </div>
 
       <div class="field">
@@ -362,7 +362,7 @@
 
   function greeting() {
     const nm = $('name').value.trim();
-    return nm ? 'Guten Abend ' + nm + ',' : 'Guten Abend,';
+    return nm ? 'Hallo ' + nm + ',' : 'Hallo,';
   }
 
   function buildData() {
