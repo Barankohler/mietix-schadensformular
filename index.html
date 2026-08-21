@@ -296,7 +296,7 @@
               <span class="cur">&euro;</span>
               <input type="text" id="brutto" inputmode="decimal" placeholder="Brutto">
             </div>
-            <div class="hint">Brutto lt. Kostenvoranschlag (optional)</div>
+            <div class="hint">Nur falls abweichend, sonst 19 Prozent</div>
           </div>
           <div>
             <div class="money">
@@ -377,7 +377,8 @@
     const rep = parseNum($('reparatur').value);
     const kv = parseNum($('kv').value);
     const kau = parseNum($('kaution').value);
-    const brutto = parseNum($('brutto').value);
+    const bruttoEin = parseNum($('brutto').value);
+    const brutto = bruttoEin > rep ? bruttoEin : (rep > 0 ? rep * 1.19 : 0);
     const mwst = brutto > rep ? brutto - rep : 0;
     const forderung = rep + kv;          // Gesamtforderung = Reparatur + Kostenvoranschlag
     const diff = forderung - kau;
