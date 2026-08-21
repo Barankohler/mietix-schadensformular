@@ -168,6 +168,7 @@
   .letter p { margin: 0 0 13px; }
   .letter .subject { font-weight: 700; }
   .letter .amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .letter .li { margin: 3px 0 3px 2px; }
   .letter .sign { margin-top: 22px; }
 
   /* Action bar */
@@ -435,7 +436,7 @@
     const kautionSatz = 'Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.';
     const kern = nachRechnung
       ? 'Die Reparatur des Fahrzeugs wurde inzwischen fachgerecht durchgeführt. Die tatsächlich angefallenen Reparaturkosten belaufen sich gemäß beigefügter Rechnung auf insgesamt ' + fmt(rep) + '.'
-      : 'Die Schadenshöhe wurde durch den beigefügten Kostenvoranschlag einer Fachwerkstatt verbindlich beziffert. Die Reparaturkosten belaufen sich danach auf insgesamt ' + fmt(rep) + '.';
+      : 'Die Schadenshöhe haben nicht wir festgelegt. Sie wurde in dem beigefügten Kostenvoranschlag von dritter Seite nach den Kalkulationsvorgaben des Herstellers ermittelt. Die Reparaturkosten belaufen sich danach auf insgesamt ' + fmt(rep) + '.';
     if (mitKV) {
       L.push(kern + ' Hinzu kommen die Kosten für die Erstellung des Kostenvoranschlags in Höhe von ' + fmt(kv) + ', insgesamt somit ' + fmt(forderung) + '. ' + kautionSatz);
     } else {
@@ -461,11 +462,20 @@
       L.push('Wir bitten Sie, diesen Betrag innerhalb von 7 Tagen auf das Ihnen bekannte Geschäftskonto zu überweisen. Sollten Sie Fragen ' + belegWort + ' haben oder eine andere Zahlungsweise benötigen, melden Sie sich gerne direkt bei uns, wir finden gemeinsam eine Lösung.');
       L.push('');
       if (mitKV) {
-        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann, die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt, sowie eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung.');
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten. Auf diese Positionen, die uns zustehen würden, verzichten wir bewusst:');
+      L.push('');
+      L.push('- der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann');
+        L.push('- die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt');
+        L.push('- eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung');
         L.push('');
         L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + ' sowie die Kosten des Kostenvoranschlags. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       } else {
-        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen die Kosten für die Erstellung des Kostenvoranschlags, der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann, die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt, sowie eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung.');
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten. Auf diese Positionen, die uns zustehen würden, verzichten wir bewusst:');
+      L.push('');
+      L.push('- die Kosten für die Erstellung des Kostenvoranschlags');
+        L.push('- der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann');
+        L.push('- die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt');
+        L.push('- eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung');
         L.push('');
         L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + '. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       }
@@ -520,7 +530,16 @@
       letter.appendChild(p);
       buf = [];
     };
-    lines.forEach(l => { if (l === '') flush(); else buf.push(l); });
+    lines.forEach(l => {
+      if (l === '') { flush(); return; }
+      if (l.startsWith('- ')) {           // Aufzaehlung als eigene Zeile
+        flush();
+        const p = document.createElement('p');
+        p.className = 'li'; p.textContent = l;
+        letter.appendChild(p); return;
+      }
+      buf.push(l);
+    });
     flush();
   }
 
