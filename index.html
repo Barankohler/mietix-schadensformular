@@ -592,6 +592,30 @@
     e.addEventListener('input', render); e.addEventListener('change', render); });
   document.querySelectorAll('#basisSeg input').forEach(el => el.addEventListener('change', render));
   render();
+
+/* --- Handynummer des Kunden zwischen den Werkzeugen merken ---
+   Nur zwei Stunden gueltig, damit nie eine alte Nummer aus einem
+   anderen Vorgang vorbelegt wird. */
+(function(){
+  try{
+    var f=document.getElementById("knr")||document.getElementById("nummer")||document.getElementById("tel");
+    if(!f)return;
+    var roh=localStorage.getItem("mietixNummer");
+    if(roh&&!f.value.trim()){
+      var w=JSON.parse(roh);
+      if(w&&w.nr&&(Date.now()-w.zeit)<2*60*60*1000){
+        f.value=w.nr;
+        f.dispatchEvent(new Event("input",{bubbles:true}));
+        f.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    }
+    f.addEventListener("input",function(){
+      var v=f.value.trim();
+      if(v.replace(/\D/g,"").length>=8)
+        localStorage.setItem("mietixNummer",JSON.stringify({nr:v,zeit:Date.now()}));
+    });
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
