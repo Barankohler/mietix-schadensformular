@@ -303,7 +303,7 @@
               <span class="cur">&euro;</span>
               <input type="text" id="kv" inputmode="decimal" placeholder="Kostenvoranschlag">
             </div>
-            <div class="hint">Kosten des Kostenvoranschlags (optional)</div>
+            <div class="hint">Rechnung für den Kostenvoranschlag</div>
           </div>
           <div>
             <div class="money">
@@ -423,7 +423,7 @@
     const belegWort = nachRechnung ? 'zur Abrechnung' : 'zum Kostenvoranschlag';
     const verzichtKurz = mitKV
       ? 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Ausfall der Mieteinnahmen während der Reparatur oder die merkantile Wertminderung durch die Nachlackierung verzichten wir bewusst.'
-      : 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Ausfall der Mieteinnahmen während der Reparatur oder die merkantile Wertminderung durch die Nachlackierung verzichten wir bewusst.';
+      : 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' angesetzt. Auf weitere Positionen wie den Ausfall der Mieteinnahmen während der Reparatur oder die merkantile Wertminderung durch die Nachlackierung verzichten wir bewusst.';
 
     const L = [];
     L.push(greeting());
@@ -472,7 +472,6 @@
       } else {
         L.push('Der Fairness halber möchten wir noch Folgendes festhalten. Auf diese Positionen, die uns zustehen würden, verzichten wir bewusst:');
       L.push('');
-      L.push('- die Kosten für die Erstellung des Kostenvoranschlags');
         L.push('- der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann');
         L.push('- die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt');
         L.push('- eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung');
