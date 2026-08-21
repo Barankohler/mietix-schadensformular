@@ -281,6 +281,30 @@
       </div>
 
       <div class="field">
+        <label>Aufschlüsselung aus dem Kostenvoranschlag (optional)</label>
+        <div class="money-grid">
+          <div><div class="money"><span class="cur">&euro;</span>
+            <input type="text" id="teile" inputmode="decimal" placeholder="Ersatzteile"></div>
+            <div class="hint">Summenblock Ersatzteile</div></div>
+          <div><div class="money"><span class="cur">&euro;</span>
+            <input type="text" id="lohn" inputmode="decimal" placeholder="Arbeitslohn"></div>
+            <div class="hint">Summenblock Arbeitslohn</div></div>
+          <div><div class="money"><span class="cur">&euro;</span>
+            <input type="text" id="lack" inputmode="decimal" placeholder="Lackierung"></div>
+            <div class="hint">Summenblock Lackierung</div></div>
+        </div>
+        <div class="hint">Ausgefüllt erklärt der Brief jede Position einzeln. Das nimmt dem Kunden den Schreck und beugt Rückfragen vor.</div>
+        <label style="display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:600">
+          <input type="checkbox" id="verbringung" checked style="width:20px;height:20px">
+          Verbringung zur Lackiererei ist im Kostenvoranschlag enthalten
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;margin-top:8px;font-weight:600">
+          <input type="checkbox" id="netto" checked style="width:20px;height:20px">
+          Wir rechnen netto ab (Mehrwertsteuer wird nicht berechnet)
+        </label>
+      </div>
+
+      <div class="field">
         <label>Beträge</label>
         <div class="money-grid">
           <div>
@@ -288,7 +312,7 @@
               <span class="cur">&euro;</span>
               <input type="text" id="reparatur" inputmode="decimal" placeholder="Reparaturkosten">
             </div>
-            <div class="hint">Reparaturkosten lt. Kostenvoranschlag bzw. Rechnung</div>
+            <div class="hint">Reparaturkosten netto lt. Kostenvoranschlag bzw. Rechnung</div>
           </div>
           <div>
             <div class="money">
@@ -347,7 +371,7 @@
 <script>
   const eur = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
   const $ = id => document.getElementById(id);
-  const ids = ['name','fahrzeug','kennzeichen','schaden','reparatur','kv','kaution','tel'];
+  const ids = ['name','fahrzeug','kennzeichen','schaden','reparatur','kv','kaution','tel','teile','lohn','lack','verbringung','netto'];
 
   function parseNum(v) {
     if (!v) return 0;
@@ -369,10 +393,15 @@
     const rep = parseNum($('reparatur').value);
     const kv = parseNum($('kv').value);
     const kau = parseNum($('kaution').value);
+    const teile = parseNum($('teile').value);
+    const lohn = parseNum($('lohn').value);
+    const lack = parseNum($('lack').value);
+    const verbringung = $('verbringung').checked;
+    const netto = $('netto').checked;
     const forderung = rep + kv;          // Gesamtforderung = Reparatur + Kostenvoranschlag
     const diff = forderung - kau;
     const rest = Math.max(0, diff);
-    return { rep, kv, kau, forderung, diff, rest };
+    return { rep, kv, kau, forderung, diff, rest, teile, lohn, lack, verbringung, netto };
   }
 
   // Live restbetrag box: schaltet automatisch zwischen Nachzahlung und Rückzahlung um
@@ -401,7 +430,7 @@
   // Build the letter as plain-text lines (single source of truth).
   // Variant is chosen automatically: rep > kau => Nachzahlung, rep < kau => Rückzahlung, rep == kau => exakt gedeckt.
   function letterLines() {
-    const { rep, kv, kau, forderung, diff, rest } = buildData();
+    const { rep, kv, kau, forderung, diff, rest, teile, lohn, lack, verbringung, netto } = buildData();
     const fz = fahrzeugLabel();
     const schaden = $('schaden').value.trim();
     const rueck = Math.abs(Math.min(0, diff));
@@ -412,8 +441,8 @@
       : 'die im Kostenvoranschlag ausgewiesenen Reparaturkosten';
     const belegWort = nachRechnung ? 'zur Abrechnung' : 'zum Kostenvoranschlag';
     const verzichtKurz = mitKV
-      ? 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.'
-      : 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Nutzungsausfall während der Reparatur oder die Wertminderung durch die Nachlackierung verzichten wir bewusst.';
+      ? 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' sowie die Kosten des Kostenvoranschlags angesetzt. Auf weitere Positionen wie den Ausfall der Mieteinnahmen während der Reparatur oder die merkantile Wertminderung durch die Nachlackierung verzichten wir bewusst.'
+      : 'Auch bei dieser Abrechnung haben wir ausschließlich ' + repLabel + ' angesetzt. Auf weitere Positionen wie die Kosten des Kostenvoranschlags, den Ausfall der Mieteinnahmen während der Reparatur oder die merkantile Wertminderung durch die Nachlackierung verzichten wir bewusst.';
 
     const L = [];
     L.push(greeting());
@@ -432,6 +461,32 @@
     } else {
       L.push(kern + ' ' + kautionSatz);
     }
+    const belegNennung = nachRechnung ? 'der Rechnung' : 'dem Kostenvoranschlag';
+    const belegIn = nachRechnung ? 'in der Rechnung' : 'im Kostenvoranschlag';
+    if (teile > 0 || lohn > 0 || lack > 0) {
+      L.push('');
+      L.push('Damit Sie den Betrag nachvollziehen können, hier die Positionen aus ' + belegNennung + ' im Einzelnen:');
+      if (teile > 0) {
+        L.push('');
+        L.push('Ersatzteile: ' + fmt(teile) + '. Beschädigte Teile werden ersetzt und nicht ausgebessert. Verbaut werden Originalteile des Herstellers, alles andere wäre bei diesem Fahrzeug weder zulässig noch werterhaltend.');
+      }
+      if (lohn > 0) {
+        L.push('');
+        L.push('Arbeitslohn: ' + fmt(lohn) + '. Aus- und Einbau der betroffenen Teile, Prüfung der verbauten Sensorik sowie das Auslesen und Zurücksetzen des Fehlerspeichers nach der Reparatur.');
+      }
+      if (lack > 0) {
+        L.push('');
+        L.push('Lackierung: ' + fmt(lack) + '. Vorbereitung, digitale Farbtonmessung und Lackierung nach Vorgabe des Herstellers. Der Farbton wird gemessen, damit das reparierte Teil später nicht sichtbar vom übrigen Fahrzeug abweicht.');
+      }
+    }
+    if (verbringung) {
+      L.push('');
+      L.push('Enthalten ist außerdem die Verbringung des Fahrzeugs. Die Lackierung erfolgt nicht im selben Betrieb, das Fahrzeug muss dorthin und wieder zurück gebracht werden. Diese Position ist Teil der Reparaturkosten und im oben genannten Betrag bereits enthalten.');
+    }
+    if (netto && rep > 0) {
+      L.push('');
+      L.push('Wichtig für Sie: Wir rechnen ausschließlich netto ab. Die ' + belegIn + ' zusätzlich ausgewiesene Mehrwertsteuer von ' + fmt(rep * 0.19) + ' berechnen wir Ihnen nicht.');
+    }
     if (!nachRechnung) {
       L.push('');
       L.push('Zur Einordnung: Als Geschädigte sind wir nach § 249 Abs. 2 BGB berechtigt, den Schaden auf Grundlage eines Kostenvoranschlags abzurechnen.');
@@ -445,11 +500,11 @@
       L.push('Wir bitten Sie, diesen Betrag innerhalb von 7 Tagen auf das Ihnen bekannte Geschäftskonto zu überweisen. Sollten Sie Fragen ' + belegWort + ' haben oder eine andere Zahlungsweise benötigen, melden Sie sich gerne direkt bei uns, wir finden gemeinsam eine Lösung.');
       L.push('');
       if (mitKV) {
-        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann, die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt, sowie eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung.');
         L.push('');
         L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + ' sowie die Kosten des Kostenvoranschlags. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       } else {
-        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen die Kosten für die Erstellung des Kostenvoranschlags, der Aufwand für die Verbringung des Fahrzeugs zur Lackiererei inklusive Fahrt- und Tankkosten, der Nutzungsausfall während der Reparaturdauer sowie die Wertminderung, die eine Nachlackierung bei einem hochwertigen Fahrzeug mit sich bringt.');
+        L.push('Der Fairness halber möchten wir noch Folgendes festhalten: Auf weitere Positionen, die uns im Rahmen der Schadensregulierung zustehen würden, verzichten wir bewusst. Dazu zählen die Kosten für die Erstellung des Kostenvoranschlags, der Ausfall der Mieteinnahmen für die Tage, an denen das Fahrzeug in der Werkstatt steht und nicht vermietet werden kann, die merkantile Wertminderung, die eine Nachlackierung bei einem Fahrzeug dieser Klasse mit sich bringt, sowie eine Bearbeitungspauschale für den Aufwand der Schadensabwicklung.');
         L.push('');
         L.push('Unsere Forderung beschränkt sich damit ausschließlich auf ' + repLabel + '. So möchten wir sicherstellen, dass die Angelegenheit für beide Seiten fair und zügig abgeschlossen werden kann.');
       }
@@ -546,7 +601,8 @@
 
   $('printBtn').addEventListener('click', () => window.print());
 
-  ids.forEach(id => $(id).addEventListener('input', render));
+  ids.forEach(id => { const e = $(id); if (!e) return;
+    e.addEventListener('input', render); e.addEventListener('change', render); });
   document.querySelectorAll('#basisSeg input').forEach(el => el.addEventListener('change', render));
   render();
 </script>
