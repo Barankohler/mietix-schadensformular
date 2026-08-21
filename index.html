@@ -303,7 +303,7 @@
               <span class="cur">&euro;</span>
               <input type="text" id="kv" inputmode="decimal" placeholder="Kostenvoranschlag">
             </div>
-            <div class="hint">Rechnung für den Kostenvoranschlag</div>
+            <div class="hint">Rechnung für den Kostenvoranschlag, Betrag wie berechnet</div>
           </div>
           <div>
             <div class="money">
@@ -447,8 +447,15 @@
     L.push('');
     L.push('Damit Sie den Betrag einordnen können: Enthalten sind die Ersatzteile, der Arbeitslohn für Aus- und Einbau samt Prüfung der verbauten Sensorik, die Lackierung mit digitaler Farbtonmessung sowie die Verbringung des Fahrzeugs zur Lackiererei und zurück. Verbaut werden Originalteile des Herstellers, und der Farbton wird gemessen, damit das reparierte Teil später nicht sichtbar vom übrigen Fahrzeug abweicht.');
     if (mwst > 0) {
+      const grund = nachRechnung
+        ? 'weil wir als Unternehmen zum Vorsteuerabzug berechtigt sind'
+        : 'weil die Reparatur noch nicht ausgeführt ist';
       L.push('');
-      L.push('Wichtig für Sie: Wir rechnen ausschließlich netto ab. Ausgewiesen sind ' + fmt(brutto) + ' brutto, die darin enthaltene Mehrwertsteuer von ' + fmt(mwst) + ' berechnen wir Ihnen nicht.');
+      L.push('Wichtig für Sie: Die Reparaturkosten rechnen wir ausschließlich netto ab, ' + grund + '. Ausgewiesen sind ' + fmt(brutto) + ' brutto, die darin enthaltene Mehrwertsteuer von ' + fmt(mwst) + ' berechnen wir Ihnen nicht.');
+    }
+    if (kv > 0) {
+      L.push('');
+      L.push('Anders verhält es sich mit der Rechnung für die Erstellung des Kostenvoranschlags über ' + fmt(kv) + '. Diese Kosten sind uns bereits tatsächlich entstanden, wir haben die Rechnung selbst bezahlt. Sie ist deshalb mit dem Betrag angesetzt, den wir dafür aufgewendet haben.');
     }
     if (!nachRechnung) {
       L.push('');
