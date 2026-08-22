@@ -258,7 +258,8 @@
 
       <div class="field">
         <label>Fahrzeug</label>
-        <input type="text" id="fahrzeug" placeholder="z. B. Lamborghini Huracan">
+        <select id="fahrzeugwahl"></select>
+        <input type="text" id="fahrzeug" placeholder="Fahrzeug eintragen" style="margin-top:8px;display:none">
       </div>
 
       <div class="field">
@@ -615,6 +616,62 @@
         localStorage.setItem("mietixNummer",JSON.stringify({nr:v,zeit:Date.now()}));
     });
   }catch(e){}
+})();
+
+/* --- Flotte im Schadensformular: auswaehlen statt tippen ---
+   Kaution kommt automatisch, das Kennzeichen wird je Fahrzeug gemerkt. */
+(function(){
+  var FLOTTE=[
+    {n:"Audi RS Q8",kaution:1950},{n:"Audi RS 5 ABT",kaution:1450},
+    {n:"Audi RS 3 Limousine",kaution:1450},{n:"VW Golf 8 GTI Clubsport",kaution:1000},
+    {n:"Audi RS 6",kaution:1950},{n:"Mercedes GLC 63 S AMG",kaution:1450},
+    {n:"Mercedes C 63 S AMG",kaution:1450},{n:"Audi R8 performance",kaution:1950},
+    {n:"Mercedes E 400 d",kaution:1000},{n:"VW Golf 8 2.0 Diesel",kaution:1000}
+  ];
+  var w=document.getElementById("fahrzeugwahl");
+  var frei=document.getElementById("fahrzeug");
+  var kz=document.getElementById("kennzeichen");
+  var kau=document.getElementById("kaution");
+  if(!w||!frei)return;
+  w.innerHTML='<option value="">Fahrzeug wählen</option>'
+    +FLOTTE.map(function(a){return '<option>'+a.n+'</option>';}).join("")
+    +'<option value="__frei">Anderes Fahrzeug</option>';
+
+  function merke(){
+    try{
+      var k={}; try{k=JSON.parse(localStorage.getItem("mietixKennzeichen")||"{}");}catch(e){}
+      if(w.value&&w.value!=="__frei"&&kz.value.trim()){
+        k[w.value]=kz.value.trim();
+        localStorage.setItem("mietixKennzeichen",JSON.stringify(k));
+      }
+    }catch(e){}
+  }
+  function holeKz(name){
+    try{ return (JSON.parse(localStorage.getItem("mietixKennzeichen")||"{}"))[name]||""; }
+    catch(e){ return ""; }
+  }
+  w.addEventListener("change",function(){
+    if(w.value==="__frei"){
+      frei.style.display="block"; frei.value=""; frei.focus();
+    } else if(w.value){
+      frei.style.display="none"; frei.value=w.value;
+      var a=FLOTTE.filter(function(x){return x.n===w.value;})[0];
+      if(a&&!kau.value.trim())kau.value=a.kaution;
+      var g=holeKz(w.value);
+      if(g&&!kz.value.trim())kz.value=g;
+    } else {
+      frei.style.display="none"; frei.value="";
+    }
+    ["input","change"].forEach(function(ev){
+      frei.dispatchEvent(new Event(ev,{bubbles:true}));
+      kau.dispatchEvent(new Event(ev,{bubbles:true}));
+      kz.dispatchEvent(new Event(ev,{bubbles:true}));
+    });
+  });
+  frei.addEventListener("input",function(){
+    if(w.value==="__frei")return;
+  });
+  kz.addEventListener("input",merke);
 })();
 </script>
 </body>
