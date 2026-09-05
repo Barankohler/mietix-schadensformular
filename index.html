@@ -621,21 +621,38 @@
 /* --- Flotte im Schadensformular: auswaehlen statt tippen ---
    Kaution kommt automatisch, das Kennzeichen wird je Fahrzeug gemerkt. */
 (function(){
-  var FLOTTE=[
+  var w=document.getElementById("fahrzeugwahl");
+  let FLOTTE=[
     {n:"Audi RS Q8",kaution:1950},{n:"Audi RS 5 ABT",kaution:1450},
     {n:"Audi RS 3 Limousine",kaution:1450},{n:"VW Golf 8 GTI Clubsport",kaution:1000},
     {n:"Audi RS 6",kaution:1950},{n:"Mercedes GLC 63 S AMG",kaution:1450},
     {n:"Mercedes C 63 S AMG",kaution:1450},{n:"Audi R8 performance",kaution:1950},
     {n:"Mercedes E 400 d",kaution:1000},{n:"VW Golf 8 2.0 Diesel",kaution:1000}
   ];
-  var w=document.getElementById("fahrzeugwahl");
+  /* Flotte aus der gemeinsamen Preisdatei nachladen, damit ein neues Fahrzeug
+     oder eine geaenderte Kaution nicht nur in der Excel steht. */
+  function flotteFuellen(){
+    var vorher=w.value;
+    w.innerHTML='<option value="">Fahrzeug wählen</option>'
+      +FLOTTE.map(function(a){return '<option>'+a.n+'</option>';}).join("")
+      +'<option value="__frei">Anderes Fahrzeug</option>';
+    if(vorher && [...w.options].some(function(o){return o.value===vorher;})) w.value=vorher;
+  }
+  try{
+    fetch("https://barankohler.github.io/mietix-preise/preise.json",{cache:"no-store"})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(pd){
+        if(!pd||!pd.cars||!pd.cars.length)return;
+        FLOTTE=pd.cars.map(function(c){return {n:c.anzeige||c.n,kaution:c.kaution};});
+        flotteFuellen();
+      }).catch(function(){});
+  }catch(e){}
+
   var frei=document.getElementById("fahrzeug");
   var kz=document.getElementById("kennzeichen");
   var kau=document.getElementById("kaution");
   if(!w||!frei)return;
-  w.innerHTML='<option value="">Fahrzeug wählen</option>'
-    +FLOTTE.map(function(a){return '<option>'+a.n+'</option>';}).join("")
-    +'<option value="__frei">Anderes Fahrzeug</option>';
+  flotteFuellen();
 
   function merke(){
     try{
