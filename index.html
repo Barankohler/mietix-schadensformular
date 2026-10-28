@@ -691,6 +691,21 @@
     if(w.value==="__frei")return;
   });
   kz.addEventListener("input",merke);
+  /* Paket C: aus dem Mietvertrag vorbelegen (?vertrag=NR), Schaden aus der Schadensanerkennung */
+  (function(){
+    var nr=new URLSearchParams(location.search).get("vertrag");if(!nr)return;
+    var v=null;try{v=(JSON.parse(localStorage.getItem("mietixVorgaenge")||"[]")).filter(function(x){return x.nr===nr})[0]||null}catch(e){}
+    if(!v)return;
+    function setz(id,wert){var el=document.getElementById(id);if(!el||wert==null||wert==="")return;el.value=wert;
+      ["input","change"].forEach(function(ev){el.dispatchEvent(new Event(ev,{bubbles:true}))})}
+    setz("name",v.name);
+    if([].some.call(w.options,function(o){return o.value===v.auto})){w.value=v.auto;w.dispatchEvent(new Event("change",{bubbles:true}))}
+    else{w.value="__frei";w.dispatchEvent(new Event("change",{bubbles:true}));setz("fahrzeug",v.auto)}
+    setz("kennzeichen",v.kz);setz("tel",v.telefon);
+    var k=((v.zahlung||{}).kaut||{}).betrag;if(k)setz("kaution",String(k).replace(/\./g,""));
+    var sd=v.schaden||{};var teile=[sd.ortFz,sd.art,sd.besch].filter(Boolean);if(teile.length)setz("schaden",teile.join(", "));
+    var sb=sd.sb||v.sb;
+  })();
 })();
 </script>
 </body>
