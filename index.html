@@ -232,8 +232,15 @@
   }
   .seg input { position: absolute; opacity: 0; pointer-events: none; }
 
+  /* Kopf bündig mit dem Inhalt am Mac (06.11.2026) */
+  @media (min-width: 760px) { html body .topbar { padding-left: max(20px, calc((100% - 1140px) / 2 + 20px)) !important; padding-right: max(20px, calc((100% - 1140px) / 2 + 20px)) !important; } }
+  /* Hinweis ohne Anmeldung, wie auf den anderen Seiten (06.11.2026) */
+  .anmZeile { max-width: 1140px; margin: 0 auto; padding: 12px 20px 0; }
+  .anmZeile div { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; border: 2px solid #C4161C; border-radius: 14px; padding: 10px 14px; font-size: 14px; color: #6E6E73; }
+  .anmZeile b { color: #C4161C; } .anmZeile a { background: #E9E9EE; color: #C4161C; font-weight: 800; border-radius: 10px; padding: 6px 12px; text-decoration: none; white-space: nowrap; }
+  .betragFehlt { background: #FDECEC; color: #C4161C; border-radius: 10px; padding: 12px 14px; font-weight: 700; font-family: -apple-system, system-ui, sans-serif; font-size: 15px; margin-bottom: 14px; }
   @media print {
-    .topbar, .actionbar, .panel:first-of-type, .panel-head { display: none !important; }
+    .anmZeile, .betragFehlt, .topbar, .actionbar, .panel:first-of-type, .panel-head { display: none !important; }
     body, .wrap, .panel { background: #fff; box-shadow: none; border: 0; margin: 0; padding: 0; display: block; }
     .letter-scroll { max-height: none; overflow: visible; padding: 0; }
   }
@@ -245,6 +252,9 @@
   <span class="brand">Mietix<span class="dot">.</span></span>
   <span class="brand-sub">Sportwagenvermietung, Schadensmeldung</span>
 </div>
+<div class="anmZeile" id="anmZeile" style="display:none"><div><span><b>Nicht angemeldet.</b> Nichts wird gesichert.</span><a href="https://barankohler.github.io/mietix-zentrale/">Anmelden ›</a></div></div>
+<script>/* wie abgleich.js: ohne gespeicherte Anmeldung roter Hinweis (06.11.2026) */
+try { if (!JSON.parse(localStorage.getItem("mietixSitzung") || "null")) document.getElementById("anmZeile").style.display = ""; } catch (e) { document.getElementById("anmZeile").style.display = ""; }</script>
 
 <div class="wrap">
   <!-- INPUT -->
@@ -369,7 +379,8 @@
     return isNaN(n) ? 0 : n;
   }
 
-  function fmt(n) { return eur.format(n).replace(/ /g, ' '); }
+  /* Glatte Beträge ohne ,00 (06.11.2026); echte Cent bleiben stehen (offene Frage an Baran) */
+  function fmt(n) { const r = Math.round(n * 100) / 100; return (Number.isInteger(r) ? new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(r) : eur.format(r)).replace(/\u00a0/g, ' '); }
 
   function greeting() {
     const nm = $('name').value.trim();
@@ -432,7 +443,7 @@
     const L = [];
     L.push(greeting());
     L.push('');
-    L.push('vielen Dank für die Anmietung des ' + fz + ' und für die pünktliche Rückgabe.');
+    L.push('vielen Dank für die Anmietung des ' + fz + '.');   /* „pünktliche Rückgabe“ raus (06.11.2026): ob pünktlich, weiß das Formular nicht */
     L.push('');
     L.push('Bei der Rückgabe des Fahrzeugs wurde ein Schaden festgestellt. Wir wissen, dass eine solche Nachricht nie angenehm ist, deshalb möchten wir die Abwicklung für Sie so transparent und unkompliziert wie möglich gestalten.');
     if (schaden) { L.push(''); L.push('Festgestellter Schaden: ' + schaden + '.'); }
@@ -528,6 +539,7 @@
     const head = document.createElement('div');
     head.className = 'head';
     head.innerHTML = '<span class="co">Mietix<span class="dot">.</span></span><span class="tag">Sportwagenvermietung</span>';
+    if (!(buildData().rep > 0)) { const w = document.createElement('div'); w.className = 'betragFehlt'; w.textContent = 'Reparaturkosten fehlen. Ohne Betrag lässt sich der Brief nicht senden.'; letter.appendChild(w); }
     letter.appendChild(head);
 
     // group lines into paragraphs (blank line = separator)
@@ -557,6 +569,21 @@
   function plainText() {
     return letterLines().join('\n');
   }
+  /* Nachricht an den Kunden: ohne Anrede und Gruß, beginnt groß (wie Seite Schäden, 06.11.2026). Brief und Druck bleiben wie sie sind. */
+  function kundenText() {
+    const L = letterLines(), g = L.indexOf('Mit freundlichen Grüßen');
+    let K = g > -1 ? L.slice(0, g) : L.slice();
+    if (K[0] === greeting()) K = K.slice(K[1] === '' ? 2 : 1);
+    const s = K.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  }
+  /* Ohne Reparaturkosten kein Brief über 0 € (06.11.2026) */
+  function ohneBetrag() {
+    if (buildData().rep > 0) return false;
+    if (window.mxFehler) mxFehler('Erst die Reparaturkosten eintragen. Ohne Betrag wird nichts gesendet.'); else alert('Erst die Reparaturkosten eintragen.');
+    const f = $('reparatur'); if (f) f.focus();
+    return true;
+  }
 
   function digitsOnly(t) {
     let d = String(t).replace(/[^\d+]/g, '');
@@ -567,7 +594,8 @@
   }
 
   $('waBtn').addEventListener('click', () => {
-    const txt = encodeURIComponent(plainText());
+    if (ohneBetrag()) return;
+    const txt = encodeURIComponent(kundenText());
     const tel = $('tel').value.trim();
     const url = tel ? 'https://wa.me/' + digitsOnly(tel) + '?text=' + txt
                     : 'https://wa.me/?text=' + txt;
@@ -576,11 +604,12 @@
 
   $('copyBtn').addEventListener('click', async () => {
     const btn = $('copyBtn');
+    if (ohneBetrag()) return;
     try {
-      await navigator.clipboard.writeText(plainText());
+      await navigator.clipboard.writeText(kundenText());
     } catch (e) {
       const ta = document.createElement('textarea');
-      ta.value = plainText(); document.body.appendChild(ta); ta.select();
+      ta.value = kundenText(); document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); ta.remove();
     }
     const old = btn.innerHTML;
@@ -589,7 +618,7 @@
     setTimeout(() => { btn.classList.remove('done'); btn.innerHTML = old; }, 1600);
   });
 
-  $('printBtn').addEventListener('click', () => window.print());
+  $('printBtn').addEventListener('click', () => { if (!ohneBetrag()) window.print(); });
 
   ids.forEach(id => { const e = $(id); if (!e) return;
     e.addEventListener('input', render); e.addEventListener('change', render); });
@@ -721,38 +750,54 @@
    window.mietixKunden.alle()               alle Kunden mit Verlauf (Mietverträge, Anfragen, Schäden)
    window.mietixKunden.finde(text)          Treffer zu einem Suchtext
    window.mietixKunden.anhaengen(feld, auf)  Trefferliste unter einem Eingabefeld, antippen ruft auf(kunde)
-   window.mietixKunden.merken(name, werte)  Felder eines Kunden im gemeinsamen Speicher ändern */
+   window.mietixKunden.merken(name, werte)  Felder eines Kunden im gemeinsamen Speicher ändern (null löscht, "" lässt stehen)
+   window.mietixKunden.eins(name)           der Kunde zu einem Namen, auch zusammengeführt (e.namen: alle Schreibweisen) */
 (function(){
 const lies=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}};
 const schreib=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};   // false: nicht gespeichert, roter Hinweis kommt aus stil/schutz.py
-const norm=s=>String(s||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();   // Çelik findet man auch als celik
+const norm=s=>String(s||"").toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/ı/g,"i").replace(/ł/g,"l").replace(/ø/g,"o").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();   // Çelik findet man auch als celik, Yılmaz als yilmaz (06.11.2026)
 const ziffern=n=>String(n||"").replace(/\D/g,"").replace(/^0049/,"0").replace(/^49/,"0");
 const de=s=>s&&/^\d{4}-\d{2}-\d{2}$/.test(s)?s.split("-").reverse().join("."):String(s||"");
 const heute=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const zahl=s=>{if(typeof s==="number")return s;s=String(s||"").replace(/[^\d,.-]/g,"");if(!s)return 0;
   if(s.includes(",")){s=s.replace(/\./g,"").replace(",",".")}else if((s.match(/\./g)||[]).length>1||/\.\d{3}$/.test(s))s=s.replace(/\./g,"");return +s||0};
 const leer=n=>({name:n,telefon:"",anschrift:"",geb:"",gebort:"",email:"",ort:"",notiz:"",keineAngebote:false,gesperrt:false,angeschrieben:"",
-  rechtsstreit:false,schadenOffen:0,schadenFaelle:0,schaeden:[],vertraege:[],anfragen:[],quelle:""});
+  rechtsstreit:false,schadenOffen:0,schadenFaelle:0,schaeden:[],vertraege:[],anfragen:[],quelle:"",namen:[String(n||"").trim()],_tels:[]});
+// Zwei Einträge sind derselbe Mensch (gleiche Telefonnummer): b geht in a auf, nichts geht verloren (06.11.2026)
+function verschmelze(a,b){["telefon","anschrift","geb","gebort","email","ort","notiz"].forEach(f=>{if(!a[f]&&b[f])a[f]=b[f]});
+  if(b.angeschrieben>a.angeschrieben)a.angeschrieben=b.angeschrieben;
+  ["keineAngebote","gesperrt","rechtsstreit"].forEach(f=>{a[f]=a[f]||b[f]});a.schadenOffen+=b.schadenOffen;a.schadenFaelle+=b.schadenFaelle;
+  a.schaeden=a.schaeden.concat(b.schaeden);a.vertraege=a.vertraege.concat(b.vertraege);a.anfragen=a.anfragen.concat(b.anfragen);
+  b.namen.forEach(n=>{if(!a.namen.includes(n))a.namen.push(n)});b._tels.forEach(z=>{if(!a._tels.includes(z))a._tels.push(z)})}
 function alle(){
   const K=lies("mietixKunden",{}),V=lies("mietixVorgaenge",[]),A=lies("mietixAnfragen",[]),m={},h=heute();
   const hol=(name,quelle)=>{const k=norm(name);if(!k)return null;if(!m[k]){m[k]=leer(String(name).trim());m[k].quelle=quelle}return m[k]};
   Object.keys(K).forEach(n=>{const d=K[n];if(!d||d._weg)return;const e=hol(n,"kunden");if(!e)return;
     ["telefon","anschrift","geb","gebort","email","ort","notiz","angeschrieben"].forEach(f=>{if(d[f])e[f]=String(d[f])});
     e.keineAngebote=!!d.keineAngebote;e.gesperrt=!!d.gesperrt;e.rechtsstreit=!!d.rechtsstreit;
-    e.schadenOffen=+d.schadenOffen||0;e.schadenFaelle=+d.schadenFaelle||0;if(Array.isArray(d.schaeden))e.schaeden=d.schaeden});
+    e.schadenOffen=+d.schadenOffen||0;e.schadenFaelle=+d.schadenFaelle||0;if(Array.isArray(d.schaeden))e.schaeden=d.schaeden;
+    if(d.telefon)e._tels.push(ziffern(d.telefon))});
   V.forEach(v=>{if(!v||!v.name)return;const e=hol(v.name,"vertrag");if(!e)return;
-    if(!e.gesperrt)["telefon","anschrift","geb","gebort","email"].forEach(f=>{if(!e[f]&&v[f])e[f]=String(v[f])});
+    if(!e.gesperrt){["telefon","anschrift","geb","gebort","email"].forEach(f=>{if(!e[f]&&v[f])e[f]=String(v[f])});if(v.telefon)e._tels.push(ziffern(v.telefon))}
     const z=v.zahlung||{},rest=z.rest||{};
     e.vertraege.push({nr:v.nr,auto:v.auto||"",von:v.vonD||"",bis:v.bisD||"",preis:zahl(v.gesamt||v.preis1),status:v.status||"",
       mieteOffen:!!(v.vonD&&v.vonD<h&&((!rest.am&&zahl(rest.betrag))||(v.verlaengerungen||[]).some(y=>!y.bezahlt?+y.aufpreis>0:y.gezahlt!=null&&(+y.aufpreis||0)>y.gezahlt)))})});   // wie offenBetrag im Mietvertrag (05.11.2026)
   A.forEach(a=>{if(!a||!a.name)return;const e=hol(a.name,"anfrage");if(!e)return;
-    if(!e.gesperrt){if(!e.telefon&&a.nummer)e.telefon=String(a.nummer);if(!e.ort&&a.ort)e.ort=String(a.ort)}
+    if(!e.gesperrt){if(!e.telefon&&a.nummer)e.telefon=String(a.nummer);if(!e.ort&&a.ort)e.ort=String(a.ort);if(a.nummer)e._tels.push(ziffern(a.nummer))}
     e.anfragen.push({tag:a.tag||"",auto:a.auto||"",von:a.von||"",bis:a.bis||"",status:a.status||""})});
+  // Gleiche Telefonnummer = derselbe Kunde, auch bei anderer Schreibweise des Namens (wie die Seite Anfragen, 06.11.2026)
+  {const wem={};Object.keys(m).forEach(k=>{const e=m[k];if(!e)return;
+    const ziel=[...new Set(e._tels)].filter(z=>z.length>=6).map(z=>wem[z]).find(x=>x&&x!==k&&m[x]);
+    if(ziel){verschmelze(m[ziel],e);delete m[k];e._tels.forEach(z=>{if(z.length>=6&&!wem[z])wem[z]=ziel})}
+    else e._tels.forEach(z=>{if(z.length>=6&&!wem[z])wem[z]=k})});
+   // nach „Daten auf Kundenwunsch löschen“ fehlt die Nummer: der Verweis mit hält die Einträge zusammen
+   Object.keys(K).forEach(n=>{const d=K[n];if(!d||d._weg||!d.mit)return;const a=m[norm(d.mit)],b=m[norm(n)];if(a&&b&&a!==b){verschmelze(a,b);delete m[norm(n)]}});
+   Object.values(m).forEach(e=>{if(e.gesperrt)["telefon","anschrift","geb","gebort","email","notiz","ort"].forEach(f=>e[f]="")})}
   // Ältere Mieten aus der Excel (Reiter Geld, 31.10.2026): kommen über die Brücke als mietixStand.statistik.verlauf.
   // Gleicher Kunde über Telefon oder Namen (auch Nachname zuerst), gleiche Miete wie ein Mietvertrag (Auto, ±3 Tage) zählt nur einmal.
   const S=(lies("mietixStand",{})||{}).statistik,VL=S&&Array.isArray(S.verlauf)?S.verlauf:[];
   if(VL.length){const dreh=n=>norm(n).split(" ").sort().join(" "),nachTel={},nachName={};
-    Object.values(m).forEach(e=>{const z=ziffern(e.telefon);if(z.length>=6)nachTel[z]=e;nachName[dreh(e.name)]=e});
+    Object.values(m).forEach(e=>{const z=ziffern(e.telefon);if(z.length>=6)nachTel[z]=e;e._tels.forEach(t=>{if(t.length>=6&&!nachTel[t])nachTel[t]=e});e.namen.forEach(x=>{nachName[dreh(x)]=e});nachName[dreh(e.name)]=e});
     VL.forEach(x=>{if(!x||!x.name)return;const z=ziffern(x.tel);
       let e=(z.length>=6&&nachTel[z])||nachName[dreh(x.name)];
       if(!e){e=hol(x.name,"excel");if(!e)return;nachName[dreh(x.name)]=e;if(z.length>=6)nachTel[z]=e}
@@ -774,15 +819,16 @@ function alle(){
 function alter(geb){if(!/^\d{4}-\d{2}-\d{2}$/.test(geb||""))return null;const g=new Date(geb),h=new Date();
   let a=h.getFullYear()-g.getFullYear();if(h.getMonth()<g.getMonth()||(h.getMonth()===g.getMonth()&&h.getDate()<g.getDate()))a--;return a>0&&a<120?a:null}
 function passt(e,tok){const t=norm(tok),z=ziffern(tok);
-  if(t&&(norm(e.name).includes(t)||norm(e.ort).includes(t)||norm(e.anschrift).includes(t)||norm(e.email).includes(t)||norm(e.gebort).includes(t)))return true;
+  if(t&&(norm(e.name).includes(t)||(e.namen||[]).some(n=>norm(n).includes(t))||norm(e.ort).includes(t)||norm(e.anschrift).includes(t)||norm(e.email).includes(t)||norm(e.gebort).includes(t)))return true;
   if(z.length>=3&&ziffern(e.telefon).includes(z))return true;
   if(e.geb&&(de(e.geb).includes(tok.trim())||e.geb.includes(tok.trim())))return true;
   if(/^\d{1,2}\.\d{1,2}\.?$/.test(tok.trim())&&e.geb){const p=tok.trim().replace(/\.$/,"").split(".");if(e.geb.slice(5)===p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0"))return true}
   return false}
 function finde(text,liste){const tok=String(text||"").trim().split(/\s+/).filter(Boolean);if(!tok.length)return[];
   return (liste||alle()).filter(e=>tok.every(t=>passt(e,t))).sort((a,b)=>b.mieten-a.mieten||norm(a.name).localeCompare(norm(b.name)))}
+// Nur null löscht ein Feld; ein leeres Feld löscht nichts (06.11.2026, Prüfung: „Kunde anlegen“ mit leerem Telefon löschte die Nummer)
 function merken(name,werte){const K=lies("mietixKunden",{});const alt=Object.keys(K).find(n=>norm(n)===norm(name))||String(name).trim();
-  const d=Object.assign({},K[alt]||{});Object.keys(werte).forEach(k=>{if(werte[k]===null||werte[k]===undefined||werte[k]==="")delete d[k];else d[k]=werte[k]});
+  const d=Object.assign({},K[alt]||{});Object.keys(werte).forEach(k=>{if(werte[k]===null)delete d[k];else if(werte[k]!==undefined&&werte[k]!=="")d[k]=werte[k]});
   K[alt]=d;schreib("mietixKunden",K);return d}
 function zeile(e){const info=[e.geb?"geb. "+de(e.geb):"",e.telefon,e.ort,e.mieten?e.mieten+(e.mieten===1?" Miete":" Mieten"):"noch kein Mietvertrag"].filter(Boolean).join("  |  ");
   return'<div class="ksT"><b>'+esc(e.name)+(e.warn.length?' <i class="ksWarn">ACHTUNG</i>':"")+'</b><span>'+esc(info)+'</span></div>'}
@@ -803,7 +849,10 @@ function anhaengen(feld,auf,opt){opt=opt||{};css();const box=document.createElem
   feld.addEventListener("input",zeichne);feld.addEventListener("focus",zeichne);
   feld.addEventListener("blur",()=>{zu=setTimeout(()=>box.style.display="none",250)});
   return{neu:zeichne}}
-window.mietixKunden={alle,finde,anhaengen,merken,norm,ziffern,de,alter,heute};
+// ein Kunde zu einem Namen, auch bei anderer Schreibweise (Yilmaz/Yılmaz) oder zusammengeführt über die Telefonnummer
+function eins(name,liste){const n=norm(name);if(!n)return null;liste=liste||alle();
+  return liste.find(e=>e.name===name)||liste.find(e=>norm(e.name)===n)||liste.find(e=>(e.namen||[]).some(x=>norm(x)===n))||null}
+window.mietixKunden={alle,finde,anhaengen,merken,norm,ziffern,de,alter,heute,eins};
 window.dispatchEvent(new Event("mietix-kunden-bereit"));
 })();
 </script>
