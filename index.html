@@ -456,7 +456,7 @@ try { if (!JSON.parse(localStorage.getItem("mietixSitzung") || "null")) document
     L.push('vielen Dank für die Anmietung des ' + fz + '.');   /* „pünktliche Rückgabe“ raus (06.11.2026): ob pünktlich, weiß das Formular nicht */
     L.push('');
     L.push('Bei der Rückgabe des Fahrzeugs wurde ein Schaden festgestellt. Wir wissen, dass eine solche Nachricht nie angenehm ist, deshalb möchten wir die Abwicklung für Sie so transparent und unkompliziert wie möglich gestalten.');
-    if (schaden) { L.push(''); L.push('Festgestellter Schaden: ' + schaden + '.'); }
+    if (schaden) { L.push(''); L.push('Festgestellter Schaden: ' + schaden.replace(/\.+$/, '') + '.'); }
     L.push('');
     const kautionSatz = 'Die von Ihnen hinterlegte Kaution in Höhe von ' + fmt(kau) + ' haben wir bereits vollständig darauf angerechnet.';
     const kern = nachRechnung
@@ -636,6 +636,9 @@ try { if (!JSON.parse(localStorage.getItem("mietixSitzung") || "null")) document
   ids.forEach(id => { const e = $(id); if (!e) return;
     e.addEventListener('input', render); e.addEventListener('change', render); });
   document.querySelectorAll('#basisSeg input').forEach(el => el.addEventListener('change', render));
+  /* Abrechnungsbasis bleibt beim Neuladen (Nachtprüfung 09.11.2026), der Entwurf merkt sich Knöpfe ohne id nicht */
+  document.querySelectorAll('#basisSeg input').forEach(el => el.addEventListener('change', () => { try { if (basis() === 'rechnung') localStorage.setItem('mietixSchadensformularBasis', 'rechnung'); else localStorage.removeItem('mietixSchadensformularBasis'); } catch (e) {} }));
+  try { if (!location.search && localStorage.getItem('mietixSchadensformularBasis') === 'rechnung') document.querySelector('#basisSeg input[value="rechnung"]').checked = true; } catch (e) {}
   render();
 
 /* --- Handynummer des Kunden zwischen den Werkzeugen merken ---
@@ -713,6 +716,10 @@ try { if (!JSON.parse(localStorage.getItem("mietixSitzung") || "null")) document
     catch(e){ return ""; }
   }
   w.addEventListener("change",function(){
+    /* Vorschlag zieht mit, von Hand Getipptes bleibt (Nachtprüfung 09.11.2026): frei.value ist hier noch das vorige Auto */
+    var vor=frei.value.trim(),vorA=FLOTTE.filter(function(x){return x.n===vor;})[0];
+    if(vorA&&kau.value.trim()===String(vorA.kaution))kau.value="";
+    if(vor&&kz.value.trim()&&kz.value.trim()===holeKz(vor))kz.value="";
     if(w.value==="__frei"){
       frei.style.display="block"; frei.value=""; frei.focus();
     } else if(w.value){
@@ -745,7 +752,9 @@ try { if (!JSON.parse(localStorage.getItem("mietixSitzung") || "null")) document
     if([].some.call(w.options,function(o){return o.value===v.auto})){w.value=v.auto;w.dispatchEvent(new Event("change",{bubbles:true}))}
     else{w.value="__frei";w.dispatchEvent(new Event("change",{bubbles:true}));setz("fahrzeug",v.auto)}
     setz("kennzeichen",v.kz);setz("tel",v.telefon);
-    var k=((v.zahlung||{}).kaut||{}).betrag;if(k)setz("kaution",String(k).replace(/\./g,""));
+    /* Nur wirklich gezahlte und noch vorhandene Kaution, wie Seite Schäden (Nachtprüfung 09.11.2026): zurückgegeben = Einbehalt, Kundenfahrzeug = 0 */
+    var kz0=(v.zahlung||{}).kaut||{},kHaben=v.kautionArt==="fahrzeug"||!kz0.am?0:(v.kautionRueck?(+v.kautionRueck.einbehalt||0):(parseFloat(String(kz0.betrag||"").replace(/\./g,"").replace(",","."))||0));
+    setz("kaution",kHaben?String(kHaben).replace(".",","):"0");
     var sd=v.schaden||{};var teile=[sd.ortFz,sd.art,sd.besch].filter(Boolean);if(teile.length)setz("schaden",teile.join(", "));
     var sb=sd.sb||v.sb;
   })();
